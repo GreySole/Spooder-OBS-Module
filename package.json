@@ -3,7 +3,11 @@
   "spooder_module": {
     "name": "obs",
     "type": "control",
-    "file": "obs.ts"
+    "file": "obs.ts",
+    "webui": {
+      "repoOwner": "GreySole",
+      "repoName": "Spooder-WebUI-OBS-Module"
+    }
   },
   "version": "0.6.0",
   "private": true,
