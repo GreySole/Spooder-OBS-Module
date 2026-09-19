@@ -2,6 +2,7 @@
   "name": "@spooder/obs",
   "spooder_module": {
     "name": "obs",
+    "displayName": "OBS",
     "type": "control",
     "file": "obs.ts",
     "webui": {
@@ -9,7 +10,7 @@
       "repoName": "Spooder-WebUI-OBS-Module"
     }
   },
-  "version": "0.6.0",
+  "version": "0.6.1",
   "private": true,
   "dependencies": {
     "obs-websocket-js": "^5.0.0"
