@@ -13,7 +13,6 @@ import fs from 'fs';
 import OSC from '@spooder/osc-js';
 import { spooderLog } from '../../core/Logging';
 import { websocketTest } from '../../core/util/NetUtil';
-import { EventService } from '../../core/service/EventService';
 import ObsStreamMonitor from './ObsStreamMonitor';
 
 // OBS's stream output states, named for the Stream State Changed trigger. The raw
@@ -159,68 +158,48 @@ export default class OBS implements ControlModuleInterface {
         id: 'switchscenes',
         label: 'Switch Scene',
         form: {
-          itemOn: { label: 'Scene', type: 'text', portType: 'string' },
-          etype: { label: 'Mode', type: 'select', options: { selections: { single: 'Single', timed: 'Timed' } } },
-          itemOff: {
-            label: 'Revert To Scene',
-            type: 'text',
+          itemOn: {
+            label: 'Scene',
+            type: 'custom',
             portType: 'string',
-            showif: { variable: 'etype', condition: 'equals', value: 'timed' },
-          },
-          duration: {
-            label: 'Duration (seconds)',
-            type: 'number',
-            portType: 'number',
-            showif: { variable: 'etype', condition: 'equals', value: 'timed' },
+            options: { component: 'sceneSelect' },
           },
         },
-        defaults: { itemOn: '', etype: 'single', itemOff: '', duration: '0' },
-        supportsTimed: true,
+        defaults: { itemOn: '' },
       },
       {
         id: 'setinputmute',
         label: 'Set Input Mute',
         form: {
-          item: { label: 'Input Name', type: 'text', portType: 'string' },
+          item: {
+            label: 'Input Name',
+            type: 'custom',
+            portType: 'string',
+            options: { component: 'inputSelect' },
+          },
           valueOn: { label: 'Mute', type: 'boolean' },
-          etype: { label: 'Mode', type: 'select', options: { selections: { single: 'Single', timed: 'Timed' } } },
-          valueOff: {
-            label: 'Revert Mute State',
-            type: 'boolean',
-            showif: { variable: 'etype', condition: 'equals', value: 'timed' },
-          },
-          duration: {
-            label: 'Duration (seconds)',
-            type: 'number',
-            portType: 'number',
-            showif: { variable: 'etype', condition: 'equals', value: 'timed' },
-          },
         },
-        defaults: { item: '', valueOn: true, etype: 'single', valueOff: false, duration: '0' },
-        supportsTimed: true,
+        defaults: { item: '', valueOn: true },
       },
       {
         id: 'enablesceneitem',
         label: 'Enable/Disable Scene Item',
         form: {
-          scene: { label: 'Scene Name', type: 'text', portType: 'string' },
-          item: { label: 'Scene Item ID', type: 'text', portType: 'string' },
+          scene: {
+            label: 'Scene Name',
+            type: 'custom',
+            portType: 'string',
+            options: { component: 'sceneSelect' },
+          },
+          item: {
+            label: 'Scene Item',
+            type: 'custom',
+            portType: 'string',
+            options: { component: 'sceneItemSelect', sceneField: 'scene' },
+          },
           valueOn: { label: 'Enabled', type: 'boolean' },
-          etype: { label: 'Mode', type: 'select', options: { selections: { single: 'Single', timed: 'Timed' } } },
-          valueOff: {
-            label: 'Revert Enabled State',
-            type: 'boolean',
-            showif: { variable: 'etype', condition: 'equals', value: 'timed' },
-          },
-          duration: {
-            label: 'Duration (seconds)',
-            type: 'number',
-            portType: 'number',
-            showif: { variable: 'etype', condition: 'equals', value: 'timed' },
-          },
         },
-        defaults: { scene: '', item: '', valueOn: true, etype: 'single', valueOff: false, duration: '0' },
-        supportsTimed: true,
+        defaults: { scene: '', item: '', valueOn: true },
       },
       {
         id: 'setrecordingname',
@@ -286,35 +265,12 @@ export default class OBS implements ControlModuleInterface {
       };
     }
     return () => {
-      const duration = parseFloat(values.duration);
       switch (nodeId) {
         case 'switchscenes':
           this.call('SetCurrentProgramScene', { sceneName: values.itemOn });
-          if (values.etype == 'timed') {
-            EventService.createTimeout(
-              ctx.eventName,
-              values,
-              'obs',
-              () => {
-                this.call('SetCurrentProgramScene', { sceneName: values.itemOff });
-              },
-              duration,
-            );
-          }
           break;
         case 'setinputmute':
           this.call('SetInputMute', { inputName: values.item, inputMuted: values.valueOn == 1 });
-          if (values.etype == 'timed') {
-            EventService.createTimeout(
-              ctx.eventName,
-              values,
-              'obs',
-              () => {
-                this.call('SetInputMute', { inputName: values.item, inputMuted: values.valueOff == 1 });
-              },
-              duration,
-            );
-          }
           break;
         case 'enablesceneitem':
           this.call('SetSceneItemEnabled', {
@@ -322,21 +278,6 @@ export default class OBS implements ControlModuleInterface {
             sceneItemId: parseInt(values.item),
             sceneItemEnabled: values.valueOn == 1,
           });
-          if (values.etype == 'timed') {
-            EventService.createTimeout(
-              ctx.eventName,
-              values,
-              'obs',
-              () => {
-                this.call('SetSceneItemEnabled', {
-                  sceneName: values.scene,
-                  sceneItemId: parseInt(values.item),
-                  sceneItemEnabled: values.valueOff == 0,
-                });
-              },
-              duration,
-            );
-          }
           break;
         case 'setrecordingname': {
           if (values.etype == 'reset') {
